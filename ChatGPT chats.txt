@@ -1,0 +1,11 @@
+| Thread Name                      | Description                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `01_Terraform_Infra_Setup`       | Provision GCP resources, IAM, Databricks using Terraform                 |
+| `02_Ingestion_with_NiFi`         | Design NiFi flows to ingest healthcare data into GCS with metadata       |
+| `03_Spark_Delta_Processing`      | Clean + enrich data in Databricks, use Delta Lake, partitioning, masking |
+| `04_Modeling_Star_Schema_dbt`    | Build fact/dim tables, SCD Type 2, contracts, dbt tests                  |
+| `05_PowerBI_Dashboards`          | Create dashboards with readmission metrics, demographic KPIs             |
+| `06_Airflow_CI_CD_Observability` | Orchestrate DAGs, log jobs, set up GitHub Actions pipelines              |
+| `07_Security_Lineage_Governance` | Implement HIPAA-level security, masking, lineage, governance policies    |
+| `08_API_Feature_Store`           | Serve data using FastAPI + build feature store for ML readiness          |
+| `09_Final_Reporting_and_Docs`    | Write executive docs, README, diagrams, compliance summary               |
