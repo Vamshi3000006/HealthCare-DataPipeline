@@ -1,5 +1,14 @@
+# Terraform and sensitive config
 terraform.tfstate
 terraform.tfstate.backup
 .terraform/
 *.tfvars
+
+# Ignore all .json files globally (e.g. credentials)
 *.json
+
+# Allow .json files in ingestion folder (e.g. processed_files.json)
+!01-ingestion-pipeline/*.json
+
+# Ignore CSV files in downloads folder (big raw files)
+01-ingestion-pipeline/downloads/*.csv
