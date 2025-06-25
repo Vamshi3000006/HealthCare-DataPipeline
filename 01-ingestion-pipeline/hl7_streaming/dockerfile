@@ -1,0 +1,17 @@
+FROM openjdk:17-jdk-slim
+
+ENV KAFKA_VERSION=3.7.0 \
+    SCALA_VERSION=2.13 \
+    KAFKA_HOME=/opt/kafka
+
+# Use a stable Kafka mirror URL instead of the redirect-prone 'downloads.apache.org'
+RUN apt-get update && apt-get install -y curl \
+ && curl -L https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ | tar -xz -C /opt && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="${KAFKA_HOME}/bin:$PATH"
+
+EXPOSE 9092
+
+CMD ["kafka-server-start.sh", "/opt/kafka/config/server.properties"]
