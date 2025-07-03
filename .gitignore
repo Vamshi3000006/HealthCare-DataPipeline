@@ -12,3 +12,10 @@ terraform.tfstate.backup
 
 # Ignore CSV files in downloads folder (big raw files)
 01-ingestion-pipeline/downloads/*.csv
+
+# Ignore delta files and parquet files in bronze layer
+03-processing-delta-spark/bronze/csv/
+03-processing-delta-spark/bronze/hl7/
+
+# Optional: ignore all .crc files from Delta logs
+*.crc

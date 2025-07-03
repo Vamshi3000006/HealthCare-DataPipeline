@@ -17,6 +17,7 @@ consumer = KafkaConsumer(
 )
 
 print(f"🔎 Listening to Kafka topic: {KAFKA_TOPIC}")
+print("[🔍 DEBUG Kafka Value]", message.value)
 try:
     for message in consumer:
         hl7_data = message.value
