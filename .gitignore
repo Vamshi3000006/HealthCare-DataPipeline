@@ -19,3 +19,6 @@ terraform.tfstate.backup
 
 # Optional: ignore all .crc files from Delta logs
 *.crc
+
+# Ignore test or temp Jupyter notebooks in hl7_streaming
+01-ingestion-pipeline/hl7_streaming/Untitled*.ipynb

@@ -32,6 +32,8 @@ if __name__ == "__main__":
 
     # Parse HL7 to JSON
     hl7_json = parse_hl7_to_json(hl7_raw)
+    print(json.dumps(hl7_json, indent=2))
+
     # If parsing failed, send raw HL7 instead
     if hl7_json is None:
         hl7_json = {"hl7_raw": hl7_raw}
