@@ -43,12 +43,15 @@ if __name__ == "__main__":
     # Create Kafka producer
     producer = KafkaProducer(
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVER,
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        value_serializer=lambda v: v.encode('utf-8')
     )
+    
 
     # Send to Kafka
     try:
-        producer.send(KAFKA_TOPIC, hl7_json)
+        # hl7_producer_kafka.py
+        producer.send("hl7-events", hl7_raw)
+
         producer.flush()
         print(f"✅ HL7 JSON message sent to Kafka topic: {KAFKA_TOPIC}")
     except Exception as e:
