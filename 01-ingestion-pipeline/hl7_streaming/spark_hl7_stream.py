@@ -2,20 +2,19 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, from_json
 from pyspark.sql.types import StructType, StructField, StringType
 import json
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Step 1: Define full HL7 to standardized JSON parser
 
 def hl7_to_standard_json(message):
     try:
-        print("⚠️ RAW HL7 INPUT:", message)
-
-        # Normalize line breaks
         lines = message.replace('\r', '\n').split('\n')
         data = {}
 
         for line in lines:
             parts = line.strip().split('|')
-            if not parts or len(parts) == 0:
+            if not parts:
                 continue
 
             seg_type = parts[0].strip()
@@ -48,7 +47,6 @@ def hl7_to_standard_json(message):
                 data["sending_facility"] = parts[4] if len(parts) > 4 else ""
                 data["message_datetime"] = parts[6] if len(parts) > 6 else ""
 
-        # Add missing fields
         required_fields = [
             "sending_facility", "message_datetime", "patient_id",
             "last_name", "first_name", "dob", "gender",
@@ -58,10 +56,11 @@ def hl7_to_standard_json(message):
         for key in required_fields:
             data.setdefault(key, "")
 
-        return json.dumps(data, ensure_ascii=False)
+        return json.dumps(data, ensure_ascii=True)
 
     except Exception as e:
-        return json.dumps({"error": str(e)}, ensure_ascii=False)
+        return json.dumps({"error": str(e)}, ensure_ascii=True)
+
 
 # Step 2: Register UDF
 parse_udf = udf(hl7_to_standard_json, StringType())
@@ -69,10 +68,14 @@ parse_udf = udf(hl7_to_standard_json, StringType())
 # Step 3: Define Spark session
 spark = SparkSession.builder \
     .appName("HL7 Kafka to Delta") \
+    .config("spark.jars.packages",
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,"
+            "io.delta:delta-core_2.12:2.4.0") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .config("spark.driver.host", "127.0.0.1") \
     .getOrCreate()
+
 
 # Step 4: Read Kafka HL7 messages
 data = spark.readStream \
@@ -83,13 +86,15 @@ data = spark.readStream \
     .option("failOnDataLoss", "false") \
     .load()
 
-print(data)
+
 
 # Step 5: Cast Kafka value to string
 raw_df = data.selectExpr("CAST(value AS STRING) AS raw_str")
 
+
 # Step 6: Apply custom parser to convert raw HL7 into standardized JSON
 parsed_df = raw_df.withColumn("parsed_json", parse_udf(col("raw_str")))
+
 
 # Define schema that matches output of hl7_to_standard_json
 hl7_schema = StructType([
@@ -108,23 +113,28 @@ hl7_schema = StructType([
     StructField("claim_end_date", StringType())
 ])
 
-# Step 7: Parse JSON string into structured format
-data_df = parsed_df.withColumn("data", from_json(col("parsed_json"), hl7_schema)) \
-    .select("data.*")
+from pyspark.sql.functions import from_json
 
-# Step 8 (Optional): Show to console for debugging
+# Step 7: Parse the JSON string into structured columns
+data_df = parsed_df.withColumn("data", from_json(col("parsed_json"), hl7_schema)).select("data.*")
+
+# Step 8: Write structured data to Delta in bronze layer
+
+output_path = "C:/Users/sreej/Health Care Project/03-processing-delta-spark/bronze/hl7_streaming"
+checkpoint_path = f"{output_path}/_checkpoints"
+
 data_df.writeStream \
-    .format("console") \
-    .option("truncate", False) \
-    .start()
-
-print("Parsed DataFrame Schema:")
-parsed_df.select("parsed_json").show(truncate=False)
-
-# Step 9: Write clean structured HL7 to Delta table
-parsed_df.select("parsed_json").writeStream \
-    .format("console") \
-    .option("truncate", False) \
-    .start() \
+    .format("delta") \
+    .outputMode("append") \
+    .option("checkpointLocation", checkpoint_path) \
+    .start(output_path) \
     .awaitTermination()
+
+
+
+
+
+
+
+
 

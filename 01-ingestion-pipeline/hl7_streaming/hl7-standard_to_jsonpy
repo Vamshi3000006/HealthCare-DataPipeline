@@ -1,0 +1,74 @@
+import json
+
+def hl7_to_standard_json(message):
+    try:
+        print("⚠️ RAW HL7 INPUT:", message)
+
+        lines = message.replace('\r', '\n').split('\n')
+        data = {}
+
+        for line in lines:
+            parts = line.strip().split('|')
+            if not parts or len(parts) == 0:
+                continue
+
+            seg_type = parts[0].strip()
+
+            if seg_type == "PID":
+                data["patient_id"] = parts[3] if len(parts) > 3 else ""
+                name_parts = parts[5].split("^") if len(parts) > 5 else []
+                data["last_name"] = name_parts[0] if len(name_parts) > 0 else ""
+                data["first_name"] = name_parts[1] if len(name_parts) > 1 else ""
+                data["dob"] = parts[7] if len(parts) > 7 else ""
+                data["gender"] = parts[8] if len(parts) > 8 else ""
+
+            elif seg_type == "PV1":
+                data["provider_id"] = parts[7] if len(parts) > 7 else ""
+                data["sending_facility"] = parts[3] if len(parts) > 3 else ""
+
+            elif seg_type == "DG1":
+                data["primary_diagnosis_code"] = parts[3] if len(parts) > 3 else ""
+
+            elif seg_type == "IN1" and "claim_id" not in data:
+                data["claim_id"] = parts[36] if len(parts) > 36 else ""
+                data["payer_name"] = parts[4] if len(parts) > 4 else ""
+                data["message_datetime"] = parts[12] if len(parts) > 12 else ""
+
+            elif seg_type == "IN2" and "claim_start_date" not in data:
+                data["claim_start_date"] = parts[2] if len(parts) > 2 else ""
+                data["claim_end_date"] = parts[3] if len(parts) > 3 else ""
+
+            elif seg_type == "MSH":
+                data["sending_facility"] = parts[4] if len(parts) > 4 else ""
+                data["message_datetime"] = parts[6] if len(parts) > 6 else ""
+
+        # Fill in missing keys
+        required_fields = [
+            "sending_facility", "message_datetime", "patient_id",
+            "last_name", "first_name", "dob", "gender",
+            "provider_id", "primary_diagnosis_code", "claim_id",
+            "payer_name", "claim_start_date", "claim_end_date"
+        ]
+        for key in required_fields:
+            data.setdefault(key, "")
+
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+# SAMPLE HL7 MESSAGE
+hl7_message = """MSH|^~\&|AccMgr|1|||20050110045504||ADT^A01|599102|P|2.3|||
+EVN|A01|20050110045502|||||
+PID|1||10006579^^^1^MRN^1||DUCK^DONALD^D||19241010|M||1|111 DUCK ST^^FOWL^CA^999990000^^M|1|8885551212|8885551212|1|2||40007716^^^AccMgr^VN^1|123121234|||||||||||NO NK1|1|DUCK^HUEY|SO|3583 DUCK RD^^FOWL^CA^999990000|8885552222||Y||||||||||||||
+PV1|1|I|PREOP^101^1^1^^^S|3|||37^DISNEY^WALT^^^^^^AccMgr^^^^CI|||01||||1|||37^DISNEY^WALT^^^^^^AccMgr^^^^CI|2|40007716^^^AccMgr^VN|4|||||||||||||||||||1||G|||20050110045253||||||
+GT1|1|8291|DUCK^DONALD^D||111^DUCKST^^FOWL^CA^999990000|8885551212||19241010|M||1|123121234||||#Cartoon Ducks Inc|111^DUCK ST^^FOWL^CA^999990000|8885551212||PT|
+DG1|1|I9|71596^OSTEOARTHROS NOS-L/LEG ^I9|OSTEOARTHROS NOS-L/LEG ||A| IN1|1|MEDICARE|3|MEDICARE|||||||Cartoon Ducks Inc|19891001|||4|DUCK^DONALD^D|1|19241010|111^DUCK ST^^FOWL^CA^999990000|||||||||||||||||123121234A||||||PT|M|111 DUCK ST^^FOWL^CA^999990000|||||8291
+IN2|1||123121234|Cartoon Ducks Inc|||123121234A|||||||||||||||||||||||||||||||||||||||||||||||||||||||||8885551212
+IN1|2|NON-PRIMARY|9|MEDICAL MUTUAL CALIF.|PO BOX 94776^^HOLLYWOOD^CA^441414776||8003621279|PUBSUMB|||Cartoon Ducks Inc||||7|DUCK^DONALD^D|1|19241010|111 DUCK ST^^FOWL^CA^999990000|||||||||||||||||056269770||||||PT|M|111^DUCK ST^^FOWL^CA^999990000|||||8291
+IN2|2||123121234|Cartoon Ducks Inc||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||8885551212
+IN1|3|SELF PAY|1|SELF PAY|||||||||||5||1"""
+
+# TEST
+parsed_json = hl7_to_standard_json(hl7_message)
+print("\n✅ PARSED JSON OUTPUT:\n", parsed_json)

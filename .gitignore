@@ -16,9 +16,26 @@ terraform.tfstate.backup
 # Ignore delta files and parquet files in bronze layer
 03-processing-delta-spark/bronze/csv/
 03-processing-delta-spark/bronze/hl7/
-
+03-processing-delta-spark/bronze/api/
 # Optional: ignore all .crc files from Delta logs
 *.crc
 
 # Ignore test or temp Jupyter notebooks in hl7_streaming
 01-ingestion-pipeline/hl7_streaming/Untitled*.ipynb
+
+# -------------------------------------------------------
+# IGNORE all parquet and delta-related files everywhere
+# -------------------------------------------------------
+
+# Parquet files
+*.parquet
+*.parquet.crc
+
+# Delta Lake logs and checkpoints
+**/_delta_log/
+**/__delta_log/
+**/checkpoint/
+**/.ipynb_checkpoints/
+
+# Optional: prevent auto-generated Spark folder if it appears
+spark-warehouse/

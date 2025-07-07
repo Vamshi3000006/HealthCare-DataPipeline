@@ -1,31 +1,53 @@
-# Add this at the end of standardize_columns.py
-if __name__ == "__main__":
-    import sys
-    import json
-    from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession
+from delta import configure_spark_with_delta_pip
+import json
+import sys
 
-    source_type = sys.argv[1]
+# ✅ Get the source type from command-line argument
+source_type = sys.argv[1]
 
-    with open("../02-Standardization and data profiling/unify-config.json", "r") as f:
-        config = json.load(f)
+# ✅ Load unify-config.json
+with open("../02-Standardization and data profiling/unify-config.json", "r") as f:
+    config = json.load(f)
 
-    input_path = config["mappings"][source_type]["path"]
+# ✅ Extract paths
+input_path = config["mappings"][source_type]["path"]
+output_path = config["mappings"][source_type]["output_path"]
+
+# ✅ Configure Spark with Delta Lake support
+builder = SparkSession.builder \
+    .appName("StandardizeColumns") \
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+
+spark = configure_spark_with_delta_pip(builder).getOrCreate()
+
+# ✅ Load and standardize the input data
+if source_type == "csv":
+    df = spark.read.option("header", True).csv(input_path)
     column_mapping = config["mappings"][source_type]["standard_column_names"]
 
-    spark = SparkSession.builder.appName("StandardizeColumns").getOrCreate()
+elif source_type == "hl7":
+    df = spark.read.format("delta").load(input_path)
+    column_mapping = config["mappings"][source_type]["standard_column_names"]
 
-    if source_type == "csv":
-        df = spark.read.option("header", True).csv(input_path)
-    elif source_type == "api":
-        df = spark.read.option("multiline", True).json(input_path)
-    elif source_type == "hl7":
-        df = spark.read.format("delta").load(input_path)
-    else:
-        raise ValueError("Unsupported source type")
+elif source_type == "api":
+    df = spark.read.option("multiline", "true").json(input_path)
+    column_mapping = {
+        k: v for k, v in config["mappings"][source_type].items()
+        if k not in ["path", "output_path"]
+    }
 
-    for standard_col, source_col in column_mapping.items():
-        if source_col in df.columns:
-            df = df.withColumnRenamed(source_col, standard_col)
+else:
+    raise ValueError("Unsupported source type")
 
-    df.write.format("delta").mode("overwrite").save(f"../03-processing-delta-spark/bronze/{source_type}")
-    spark.stop()
+# ✅ Rename columns if present
+for source_col, standard_col in column_mapping.items():
+    if source_col in df.columns:
+        df = df.withColumnRenamed(source_col, standard_col)
+
+# ✅ Save as Delta Lake format
+df.write.format("delta").mode("overwrite").save(output_path)
+
+# ✅ Done
+spark.stop()
