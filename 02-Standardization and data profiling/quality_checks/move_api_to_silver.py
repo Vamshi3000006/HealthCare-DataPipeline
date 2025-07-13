@@ -7,11 +7,11 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Load Bronze CSV
-bronze_path = "C:/Users/sreej/Health Care Project/03-processing-delta-spark/bronze/api"
+bronze_path = r"C:/Users/sreej/Health Care Project/03-processing-delta-spark/bronze/api"
 df = spark.read.format("delta").load(bronze_path)
 
 # Write to Silver as-is (no patient_id or age filtering)
-silver_path = "C:/Users/sreej/Health Care Project/03-processing-delta-spark/silver/api"
+silver_path = r"C:/Users/sreej/Health Care Project/03-processing-delta-spark/silver_unified/api"
 df.write.format("delta").mode("overwrite").save(silver_path)
 
 print("✅ CSV Bronze → Silver completed.")

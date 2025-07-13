@@ -3,10 +3,10 @@ from delta import configure_spark_with_delta_pip
 import json
 import sys
 
-# ✅ Get the source type from command-line argument
+# ✅ Get source type from CLI
 source_type = sys.argv[1]
 
-# ✅ Load unify-config.json
+# ✅ Load config
 with open("../02-Standardization and data profiling/unify-config.json", "r") as f:
     config = json.load(f)
 
@@ -14,7 +14,7 @@ with open("../02-Standardization and data profiling/unify-config.json", "r") as 
 input_path = config["mappings"][source_type]["path"]
 output_path = config["mappings"][source_type]["output_path"]
 
-# ✅ Configure Spark with Delta Lake support
+# ✅ Spark + Delta setup
 builder = SparkSession.builder \
     .appName("StandardizeColumns") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
@@ -22,7 +22,7 @@ builder = SparkSession.builder \
 
 spark = configure_spark_with_delta_pip(builder).getOrCreate()
 
-# ✅ Load and standardize the input data
+# ✅ Load data per source type
 if source_type == "csv":
     df = spark.read.option("header", True).csv(input_path)
     column_mapping = config["mappings"][source_type]["standard_column_names"]
@@ -38,16 +38,21 @@ elif source_type == "api":
         if k not in ["path", "output_path"]
     }
 
+    # ✅ Skip write if only _corrupt_record present
+    if df.columns == ["_corrupt_record"]:
+        print("all rows are corrupt — skipping write.")
+        spark.stop()
+        sys.exit(0)
+
 else:
     raise ValueError("Unsupported source type")
 
-# ✅ Rename columns if present
-for source_col, standard_col in column_mapping.items():
-    if source_col in df.columns:
-        df = df.withColumnRenamed(source_col, standard_col)
+# ✅ Rename columns
+for src, std in column_mapping.items():
+    if src in df.columns:
+        df = df.withColumnRenamed(src, std)
 
-# ✅ Save as Delta Lake format
+# ✅ Save to Delta
 df.write.format("delta").mode("overwrite").save(output_path)
 
-# ✅ Done
 spark.stop()

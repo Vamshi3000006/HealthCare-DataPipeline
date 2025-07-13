@@ -8,7 +8,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Path to Bronze CSV
-bronze_path = r"C:\Users\sreej\Health Care Project\03-processing-delta-spark\bronze\csv"
+bronze_path = r"C:\Users\sreej\Health Care Project\03-processing-delta-spark\silver\api"
 
 # Load and inspect schema
 df = spark.read.format("delta").load(bronze_path)
