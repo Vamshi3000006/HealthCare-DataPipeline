@@ -22,12 +22,16 @@ output_path = config["mappings"][source_type]["output_path"]
 column_mapping = config["mappings"][source_type]["standard_column_names"]
 
 # Read source data
-df = spark.read.format("csv").option("header", "true").load(input_path)
+df = spark.read.format("delta").option("header", "true").load(input_path)
+#df = spark.read.format("delta").load("C:/Users/sreej/Health_Care_Project/03-processing-delta-spark/bronze/hl7")
+
+
 
 # Rename columns to standard names
-for standard_col, source_col in column_mapping.items():
+for source_col, standard_col in column_mapping.items():
     if source_col in df.columns:
         df = df.withColumnRenamed(source_col, standard_col)
+
 
 # Write to Delta Lake format
 
