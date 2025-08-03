@@ -39,3 +39,7 @@ terraform.tfstate.backup
 
 # Optional: prevent auto-generated Spark folder if it appears
 spark-warehouse/
+
+.env
+
+macro-landing-462401-g0-703b79c2343b.json
