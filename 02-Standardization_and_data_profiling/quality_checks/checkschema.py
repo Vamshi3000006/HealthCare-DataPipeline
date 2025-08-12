@@ -1,16 +1,18 @@
 from pyspark.sql import SparkSession
 
+# Include Delta configs here!
 spark = SparkSession.builder \
-    .appName("Check Cleaned Delta") \
+    .appName("Inspect CSV Bronze Schema") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
-delta_path = "C:/Users/sreej/Health Care Project/03-processing-delta-spark/bronze/hl7_streaming"
+# Path to Bronze CSV
+bronze_path = r"C:\Users\sreej\Health Care Project\03-processing-delta-spark\silver\api"
 
-df = spark.read.format("delta").load(delta_path)
-
+# Load and inspect schema
+df = spark.read.format("delta").load(bronze_path)
 df.printSchema()
-df.show(10, truncate=False)
+df.show(5)
 
 spark.stop()
